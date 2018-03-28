@@ -43,14 +43,14 @@ public class ExtractLogTimestampToHeaderInterceptor implements Interceptor {
         if(dateTimePattern != null && "".equals(dateTimePattern.trim())){
            formatter = DateTimeFormatter.ofPattern(dateTimePattern);
         }else{
-            formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS");
+            formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
         }
         //抽取正则
         if(extractRegex != null && "".equals(extractRegex.trim())){
 
             regex = Pattern.compile(extractRegex);
         }else{
-            extractRegex = "(yyyy-MM-dd HH:mm:ss SSS)";
+            extractRegex = "(yyyy-MM-dd HH:mm:ss.SSS)";
             regex = Pattern.compile(extractRegex);
         }
     }
