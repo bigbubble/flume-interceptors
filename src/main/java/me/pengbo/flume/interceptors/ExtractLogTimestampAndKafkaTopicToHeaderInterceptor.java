@@ -8,6 +8,7 @@ import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.SystemClock;
 import org.apache.flume.interceptor.Interceptor;
+import org.apache.flume.source.kafka.KafkaSourceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,9 +37,12 @@ public class ExtractLogTimestampAndKafkaTopicToHeaderInterceptor implements Inte
 
     private DateTimeFormatter formatter;
 
-    private String topicNewHeaderName;
+    private String hadoopDir;
 
-    public ExtractLogTimestampAndKafkaTopicToHeaderInterceptor(String extractRegex, String dateTimePattern, String topicNewHeaderName){
+    private String topicHeader;
+
+    public ExtractLogTimestampAndKafkaTopicToHeaderInterceptor(String extractRegex,
+            String dateTimePattern, String hadoopDir, String topicHeader){
         //日期格式化
         if(dateTimePattern != null && !"".equals(dateTimePattern.trim())){
             formatter = DateTimeFormatter.ofPattern(dateTimePattern);
@@ -54,7 +58,9 @@ public class ExtractLogTimestampAndKafkaTopicToHeaderInterceptor implements Inte
             regex = Pattern.compile(extractRegex);
         }
 
-        this.topicNewHeaderName = topicNewHeaderName;
+        this.hadoopDir = hadoopDir;
+
+        this.topicHeader = topicHeader;
     }
 
     @Override
@@ -65,13 +71,13 @@ public class ExtractLogTimestampAndKafkaTopicToHeaderInterceptor implements Inte
     @Override
     public Event intercept(Event event) {
         Map<String, String> headers = event.getHeaders();
-        System.out.println(topicNewHeaderName);
         for(Map.Entry<String, String> entry :headers.entrySet()){
             System.out.println(entry.getKey()+"-"+entry.getValue());
         }
-        if(topicNewHeaderName != null && !"".equals(topicNewHeaderName.trim())){
-            System.out.println(headers.get("topic"));
-            headers.put(topicNewHeaderName, headers.get("topic"));
+        if(hadoopDir != null && !"".equals(hadoopDir.trim())){
+            String topic = headers.get(this.topicHeader);
+            String partitioner = headers.get(KafkaSourceConstants.PARTITION_HEADER);
+            headers.put(hadoopDir, topic + partitioner);
         }
         Matcher matcher = regex.matcher(new String(event.getBody(), Charsets.UTF_8));
         if(matcher.find()){
@@ -111,7 +117,10 @@ public class ExtractLogTimestampAndKafkaTopicToHeaderInterceptor implements Inte
 
         private static final String formatter = "formatter";//日期格式化格式
         private static final String extract = "extract";//抽取日志部分正则
-        private static final String topicNewHeaderName = "topicNewHeaderName";
+        private static final String hadoopDir = "hadoopDir";//自定义hadoop文件加名称
+
+        private static final String setTopicHeader = "setTopicHeader";
+        private static final String topicHeader = "topicHeader";
 
         private Context context;
 
@@ -119,8 +128,17 @@ public class ExtractLogTimestampAndKafkaTopicToHeaderInterceptor implements Inte
         public Interceptor build() {
             String dateTimeFormatter = context.getString(formatter);
             String extractRegex = context.getString(extract);
-            String topicNewHeaderNameStr = context.getString("topicNewHeaderName");
-            return new ExtractLogTimestampAndKafkaTopicToHeaderInterceptor(extractRegex, dateTimeFormatter, topicNewHeaderNameStr);
+            String hadoopDirStr = context.getString(hadoopDir);
+            //是否设置主题
+            boolean setTopicHeaderb = context.getBoolean(setTopicHeader, true);
+            //主题名称
+            String topicHeaderName = "";
+            if(setTopicHeaderb){
+                topicHeaderName = context.getString(topicHeader, KafkaSourceConstants.DEFAULT_TOPIC_HEADER);
+            }
+
+            return new ExtractLogTimestampAndKafkaTopicToHeaderInterceptor(extractRegex,
+                    dateTimeFormatter, hadoopDirStr, topicHeaderName);
         }
 
         @Override
