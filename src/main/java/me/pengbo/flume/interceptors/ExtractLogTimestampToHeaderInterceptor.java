@@ -40,13 +40,13 @@ public class ExtractLogTimestampToHeaderInterceptor implements Interceptor {
 
     public ExtractLogTimestampToHeaderInterceptor(String extractRegex, String dateTimePattern){
         //日期格式化
-        if(dateTimePattern != null && "".equals(dateTimePattern.trim())){
+        if(dateTimePattern != null && !"".equals(dateTimePattern.trim())){
            formatter = DateTimeFormatter.ofPattern(dateTimePattern);
         }else{
             formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
         }
         //抽取正则
-        if(extractRegex != null && "".equals(extractRegex.trim())){
+        if(extractRegex != null && !"".equals(extractRegex.trim())){
 
             regex = Pattern.compile(extractRegex);
         }else{
