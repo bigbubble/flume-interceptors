@@ -31,6 +31,8 @@ public class ExtractLogTimestampAndKafkaTopicToHeaderInterceptor implements Inte
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExtractLogTimestampToHeaderInterceptor.class);
 
+    private static final String TIMESTAMP_KEY = "timestamp";
+
     private static Clock clock = new SystemClock();
 
     private final Pattern regex;
@@ -85,13 +87,17 @@ public class ExtractLogTimestampAndKafkaTopicToHeaderInterceptor implements Inte
             try{
                 LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
                 long timestamp = localDateTime.toInstant(ZoneOffset.of("+8")).toEpochMilli();
-                headers.put("timestamp", String.valueOf(timestamp));
+                headers.put(TIMESTAMP_KEY, String.valueOf(timestamp));
             }catch (Exception e){
                 LOGGER.warn("日期转换错误,使用系统当前时间",e);
-                headers.put("timestamp", String.valueOf(clock.currentTimeMillis()));
+                if(headers.get(TIMESTAMP_KEY) == null){
+                    headers.put(TIMESTAMP_KEY, String.valueOf(clock.currentTimeMillis()));
+                }
             }
         }else{
-            headers.put("timestamp", String.valueOf(clock.currentTimeMillis()));
+            if(headers.get(TIMESTAMP_KEY) == null){
+                headers.put(TIMESTAMP_KEY, String.valueOf(clock.currentTimeMillis()));
+            }
         }
         return event;
     }
@@ -102,7 +108,7 @@ public class ExtractLogTimestampAndKafkaTopicToHeaderInterceptor implements Inte
         for(Event event : list){
             Event interceptedEvent = intercept(event);
             if(interceptedEvent != null){
-                LOGGER.debug("extracted timestamp:{}", interceptedEvent.getHeaders().get("timestamp"));
+                LOGGER.debug("extracted timestamp:{}", interceptedEvent.getHeaders().get(TIMESTAMP_KEY));
                 intercepted.add(interceptedEvent);
             }
         }
